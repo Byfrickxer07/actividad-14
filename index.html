@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>📱 Generador de Código QR - PWD 7° 2°</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Librería de QR por CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1 class="title">📱 Generador de Código QR</h1>
+            <p class="subtitle">Creá códigos QR profesionales para tu proyecto de la Expo Técnica</p>
+        </header>
+
+        <div class="card">
+            <div class="input-group">
+                <label for="link" class="label">🔗 URL de tu proyecto</label>
+                <input 
+                    type="text" 
+                    id="link" 
+                    class="input-field"
+                    placeholder="https://github.com/tuusuario/proyecto o tu link de Netlify/Vercel"
+                >
+            </div>
+
+            <div class="controls-row">
+                <div class="control-group">
+                    <label for="color" class="label">🎨 Color</label>
+                    <select id="color" class="select-field">
+                        <option value="#000000">⚫ Negro (clásico)</option>
+                        <option value="#2e7d32">🟢 Verde</option>
+                        <option value="#1565c0">🔵 Azul</option>
+                        <option value="#c62828">🔴 Rojo</option>
+                        <option value="#7b1fa2">🟣 Violeta</option>
+                        <option value="#f57c00">🟠 Naranja</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="size" class="label">📏 Tamaño</label>
+                    <select id="size" class="select-field">
+                        <option value="128">128px (Pequeño)</option>
+                        <option value="192">192px (Mediano)</option>
+                        <option value="256" selected>256px (Grande)</option>
+                        <option value="320">320px (Extra grande)</option>
+                    </select>
+                </div>
+            </div>
+
+            <button onclick="generateQR()" class="btn btn-primary">
+                ✨ Generar Código QR
+            </button>
+
+            <div id="qrcode" class="qr-container"></div>
+            
+            <button onclick="downloadQR()" class="btn btn-secondary" id="downloadBtn" style="display: none;">
+                📥 Descargar QR
+            </button>
+
+            <div class="tip">
+                💡 <strong>Tip:</strong> Probá escanearlo con la cámara de tu celular para verificar que funcione correctamente
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let qrInstance = null;
+        
+        // Genera el QR con los datos ingresados
+        function generateQR() {
+            const link = document.getElementById('link').value.trim();
+            const color = document.getElementById('color').value;
+            const size = parseInt(document.getElementById('size').value);
+            
+            if (!link) {
+                showNotification("⚠️ Por favor, ingresá una URL válida", "warning");
+                return;
+            }
+
+            // Validación básica de URL
+            if (!isValidUrl(link)) {
+                showNotification("⚠️ La URL no parece válida. Asegurate de incluir http:// o https://", "warning");
+                return;
+            }
+            
+            // Limpia el QR previo (si existe)
+            document.getElementById('qrcode').innerHTML = "";
+            
+            // Crea un nuevo QR con animación
+            const qrContainer = document.getElementById('qrcode');
+            qrContainer.classList.add('generating');
+            
+            try {
+                qrInstance = new QRCode(document.getElementById('qrcode'), {
+                    text: link,
+                    width: size,
+                    height: size,
+                    colorDark: color,
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H // Alta corrección
+                });
+                
+                // Mostrar botón de descarga con delay para que se genere el QR
+                setTimeout(() => {
+                    qrContainer.classList.remove('generating');
+                    qrContainer.classList.add('generated');
+                    document.getElementById('downloadBtn').style.display = 'block';
+                    showNotification("✅ ¡Código QR generado exitosamente!", "success");
+                }, 500);
+                
+            } catch (error) {
+                qrContainer.classList.remove('generating');
+                showNotification("❌ Error al generar el código QR", "error");
+            }
+        }
+        
+        // Descarga el QR como imagen PNG
+        function downloadQR() {
+            const img = document.querySelector('#qrcode img') || document.querySelector('#qrcode canvas');
+            if (!img) {
+                showNotification("⚠️ Primero generá el código QR", "warning");
+                return;
+            }
+            
+            // Si es canvas, convertir a PNG
+            let dataUrl;
+            if (img.tagName.toLowerCase() === 'canvas') {
+                dataUrl = img.toDataURL("image/png");
+            } else {
+                dataUrl = img.src; // si es img, usar src
+            }
+            
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = "codigo_qr_expo_tecnica.png";
+            link.click();
+            
+            showNotification("📥 ¡Código QR descargado!", "success");
+        }
+
+        // Validación simple de URL
+        function isValidUrl(string) {
+            try {
+                new URL(string);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        // Sistema de notificaciones
+        function showNotification(message, type = 'info') {
+            // Remover notificación anterior si existe
+            const existingNotification = document.querySelector('.notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remover después de 4 segundos
+            setTimeout(() => {
+                notification.classList.add('fade-out');
+                setTimeout(() => notification.remove(), 300);
+            }, 4000);
+        }
+
+        // Generar QR al presionar Enter en el input
+        document.getElementById('link').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                generateQR();
+            }
+        });
+    </script>
+</body>
+</html>
